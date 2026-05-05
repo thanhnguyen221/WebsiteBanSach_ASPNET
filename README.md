@@ -96,9 +96,9 @@ cd BookStoreWeb
 Create a `.env` file in the root directory:
 ```env
 # Momo Payment (Test Environment)
-MOMO_PARTNER_CODE=MOMOBKUN20180529
-MOMO_ACCESS_KEY=klm05TvNBzhg7h7j
-MOMO_SECRET_KEY=at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa
+MOMO_PARTNER_CODE=
+MOMO_ACCESS_KEY=
+MOMO_SECRET_KEY=
 MOMO_API_URL=https://test-payment.momo.vn/v2/gateway/api/create
 
 # PayOS Payment (Production)
@@ -299,7 +299,7 @@ dotnet watch run
 
 ## 🦾 Academic Context
 
-This project was developed as a **Graduation Project (Đồ Án Tốt Nghiệp)** at university, exploring:
+This project was developed as a Web Technology Course Project (Dự án kết thúc môn Công nghệ Web), focusing on building a practical E-commerce website. The project explores:
 - E-commerce architecture with ASP.NET Core MVC
 - Payment gateway integration in .NET applications
 - Database design principles for inventory and order management
