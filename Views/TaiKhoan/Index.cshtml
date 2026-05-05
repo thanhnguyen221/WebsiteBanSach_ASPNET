@@ -1,0 +1,62 @@
+@model IEnumerable<BookStoreWeb.Models.NguoiDung>
+
+@{
+    ViewData["Title"] = "Quản lý người dùng";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-people text-warning"></i> Quản lý người dùng</h2>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã</th>
+                            <th>Họ tên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Vai trò</th>
+                            <th>Ngày tạo</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.MaNguoiDung</td>
+                                <td>@item.HoTen</td>
+                                <td>@item.Email</td>
+                                <td>@(item.SoDienThoai ?? "-")</td>
+                                <td>
+                                    <span class="badge @(item.VaiTro == "Admin" ? "bg-danger" : "bg-secondary")">
+                                        @item.VaiTro
+                                    </span>
+                                </td>
+                                <td>@item.NgayTao.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (item.ConHoatDong)
+                                    {
+                                        <span class="badge bg-success">Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Ngừng hoạt động</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-controller="AdminDashboard" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+        </a>
+    </div>
+</div>

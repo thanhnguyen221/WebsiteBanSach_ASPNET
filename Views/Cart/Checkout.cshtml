@@ -1,0 +1,137 @@
+@model IEnumerable<BookStoreWeb.Models.CartItem>
+@using BookStoreWeb.Models
+@{
+    ViewData["Title"] = "Thanh toán";
+    var user = ViewBag.User as NguoiDung;
+    var totalAmount = Model.Sum(c => c.ThanhTien);
+}
+
+<div class="container mt-4">
+    <h1 class="mb-4"><i class="bi bi-credit-card"></i> Thanh toán</h1>
+
+    <div class="row">
+        <!-- Thông tin đơn hàng -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-cart-check"></i> Sản phẩm trong giỏ</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-center">SL</th>
+                                    <th class="text-end">Đơn giá</th>
+                                    <th class="text-end">Thành tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                @if (!string.IsNullOrEmpty(item.HinhAnh))
+                                                {
+                                                    <img src="~/images/@item.HinhAnh" alt="@item.TenSP" class="img-thumbnail me-2" style="width: 50px; height: 60px; object-fit: cover;">
+                                                }
+                                                <span>@item.TenSP</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">@item.SoLuong</td>
+                                        <td class="text-end">@item.Gia.ToString("N0") đ</td>
+                                        <td class="text-end fw-bold">@item.ThanhTien.ToString("N0") đ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-group-divider">
+                                <tr class="table-primary">
+                                    <td colspan="3" class="text-end h5">Tổng cộng:</td>
+                                    <td class="text-end h5 text-primary">@totalAmount.ToString("N0") đ</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form thanh toán -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-truck"></i> Thông tin giao hàng</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Checkout" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Người nhận:</label>
+                            <p class="form-control-plaintext">@(user?.HoTen ?? "Không xác định")</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Email:</label>
+                            <p class="form-control-plaintext">@(user?.Email ?? "Không xác định")</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Số điện thoại:</label>
+                            <p class="form-control-plaintext">@(user?.SoDienThoai ?? "Chưa cập nhật")</p>
+                        </div>
+
+                        <!-- Phương thức thanh toán -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Phương thức thanh toán <span class="text-danger">*</span></label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="phuongThucThanhToan" id="tienMat" value="Tiền mặt" checked>
+                                <label class="form-check-label" for="tienMat">
+                                    <i class="bi bi-cash-coin text-success"></i> Tiền mặt khi nhận hàng (COD)
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="phuongThucThanhToan" id="momo" value="MoMo">
+                                <label class="form-check-label" for="momo">
+                                    <i class="bi bi-wallet2 text-primary"></i> Thanh toán MoMo <span class="badge bg-danger">Mới</span>
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="radio" name="phuongThucThanhToan" id="payos" value="PayOS">
+                                <label class="form-check-label" for="payos">
+                                    <i class="bi bi-credit-card text-danger"></i> Thanh toán PayOS <span class="badge bg-primary">Chuyển khoản</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="diaChiGiaoHang" class="form-label fw-bold">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                            <textarea name="diaChiGiaoHang" id="diaChiGiaoHang" class="form-control" rows="3" required
+                                      placeholder="Nhập địa chỉ giao hàng chi tiết...">@(user?.DiaChi ?? "")</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="ghiChu" class="form-label fw-bold">Ghi chú (tùy chọn)</label>
+                            <textarea name="ghiChu" id="ghiChu" class="form-control" rows="2"
+                                      placeholder="Ghi chú về đơn hàng..."></textarea>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning btn-lg fw-bold shadow-sm" style="font-size: 1.2rem;">
+                                <i class="bi bi-bag-check-fill"></i> XÁC NHẬN ĐẶT HÀNG
+                            </button>
+                        </div>
+
+                        <div class="d-grid mt-2">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Quay lại giỏ hàng
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

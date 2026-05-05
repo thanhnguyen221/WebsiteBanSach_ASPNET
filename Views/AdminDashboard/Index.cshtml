@@ -1,0 +1,235 @@
+@{
+    ViewData["Title"] = "Dashboard Admin";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4"><i class="bi bi-speedometer2 text-primary"></i> Dashboard</h2>
+
+    <!-- Cards thống kê tổng quan -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Tổng doanh thu</h6>
+                            <h3>@ViewBag.TotalRevenue.ToString("N0") VNĐ</h3>
+                        </div>
+                        <i class="bi bi-cash-stack fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Đơn hàng</h6>
+                            <h3>@ViewBag.TotalOrders</h3>
+                        </div>
+                        <i class="bi bi-bag fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Sản phẩm</h6>
+                            <h3>@ViewBag.TotalProducts</h3>
+                        </div>
+                        <i class="bi bi-book fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Người dùng</h6>
+                            <h3>@ViewBag.TotalUsers</h3>
+                            <small>+@ViewBag.NewUsersThisMonth tháng này</small>
+                        </div>
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Biểu đồ doanh thu -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Doanh thu 6 tháng gần nhất</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trạng thái đơn hàng -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Trạng thái đơn hàng</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="orderStatusChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top sách bán chạy -->
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="bi bi-trophy text-warning"></i> Top sách bán chạy tháng này</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Sách</th>
+                            <th>Số lượng bán</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var book in ViewBag.TopSellingBooks)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(book.HinhAnh))
+                                    {
+                                        <img src="~/images/@book.HinhAnh" alt="@book.TenSach" style="width: 50px; height: 70px; object-fit: cover;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 70px;">
+                                            <i class="bi bi-book text-muted"></i>
+                                        </div>
+                                    }
+                                </td>
+                                <td>@book.TenSach</td>
+                                <td><span class="badge bg-success">@book.SoLuongBan</span></td>
+                                <td>@book.DoanhThu.ToString("N0") VNĐ</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row g-4 mt-2">
+        <div class="col-md-4">
+            <a asp-controller="SanPhams" asp-action="Index" class="card text-decoration-none border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-book text-primary fs-1"></i>
+                    <h5 class="mt-2">Quản lý sách</h5>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a asp-controller="AdminDonHang" asp-action="Index" class="card text-decoration-none border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-bag text-success fs-1"></i>
+                    <h5 class="mt-2">Quản lý đơn hàng</h5>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a asp-controller="TaiKhoan" asp-action="Index" class="card text-decoration-none border-0 shadow-sm h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people text-warning fs-1"></i>
+                    <h5 class="mt-2">Quản lý người dùng</h5>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Revenue Chart
+        const revenueData = @Html.Raw(Json.Serialize(ViewBag.RevenueByMonth));
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: revenueData.map(r => `${r.month}/${r.year}`),
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: revenueData.map(r => r.revenue),
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('vi-VN') + ' VNĐ';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Order Status Chart
+        const statusData = @Html.Raw(Json.Serialize(ViewBag.OrdersByStatus));
+        const statusColors = {
+            'ChoXacNhan': '#ffc107',
+            'DaXacNhan': '#17a2b8',
+            'DangGiao': '#6c757d',
+            'DaGiao': '#28a745',
+            'DaThanhToan': '#007bff',
+            'DaHuy': '#dc3545'
+        };
+        const statusLabels = {
+            'ChoXacNhan': 'Chờ xác nhận',
+            'DaXacNhan': 'Đã xác nhận',
+            'DangGiao': 'Đang giao',
+            'DaGiao': 'Đã giao',
+            'DaThanhToan': 'Đã thanh toán',
+            'DaHuy': 'Đã hủy'
+        };
+        
+        const statusCtx = document.getElementById('orderStatusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.map(s => statusLabels[s.status] || s.status),
+                datasets: [{
+                    data: statusData.map(s => s.count),
+                    backgroundColor: statusData.map(s => statusColors[s.status] || '#6c757d')
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+}

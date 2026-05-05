@@ -1,0 +1,36 @@
+# .NET build output
+bin/
+obj/
+
+# Environment variables - NEVER commit this file
+.env
+.env.local
+.env.*.local
+
+# User-specific files
+*.user
+*.suo
+*.userprefs
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Runtime files
+publish/
+*.pubxml

@@ -1,0 +1,91 @@
+// BookStore Database Schema for dbdiagram.io
+// Copy nội dung này và paste vào https://dbdiagram.io/d
+
+Table SanPham {
+  MaSanPham int [pk, increment]
+  TenSach nvarchar(200) [not null]
+  TacGia nvarchar(100)
+  NhaXuatBan nvarchar(100)
+  NamXuatBan int
+  TheLoai nvarchar(50)
+  GiaBan decimal(18,2) [not null]
+  SoLuongTon int [default: 0]
+  MoTa nvarchar(500)
+  HinhAnh nvarchar(255)
+  NgayTao datetime [default: `now()`]
+  ConHieuLuc bit [default: true]
+}
+
+Table NguoiDung {
+  MaNguoiDung int [pk, increment]
+  HoTen nvarchar(100) [not null]
+  Email nvarchar(100) [not null, unique]
+  MatKhau nvarchar(255) [not null]
+  SoDienThoai nvarchar(20)
+  DiaChi nvarchar(200)
+  VaiTro nvarchar(50) [default: 'User']
+  NgayTao datetime [default: `now()`]
+  ConHoatDong bit [default: true]
+}
+
+Table DonHang {
+  MaDonHang int [pk, increment]
+  MaNguoiDung int [not null, ref: > NguoiDung.MaNguoiDung]
+  NgayDatHang datetime [default: `now()`]
+  TongTien decimal(18,2) [not null]
+  TrangThai nvarchar(50) [default: 'ChoXacNhan']
+  PhuongThucThanhToan nvarchar(50) [default: 'COD']
+  DiaChiGiaoHang nvarchar(200)
+  GhiChu nvarchar(500)
+  NgayCapNhat datetime
+}
+
+Table ChiTietDonHang {
+  MaChiTiet int [pk, increment]
+  MaDonHang int [not null, ref: > DonHang.MaDonHang]
+  MaSanPham int [not null, ref: > SanPham.MaSanPham]
+  SoLuong int [not null]
+  DonGia decimal(18,2) [not null]
+}
+
+Table DanhGia {
+  MaDanhGia int [pk, increment]
+  MaSanPham int [not null, ref: > SanPham.MaSanPham]
+  MaNguoiDung int [not null, ref: > NguoiDung.MaNguoiDung]
+  SoSao int [not null, note: '1-5 sao']
+  NoiDung nvarchar(1000)
+  NgayDanhGia datetime [default: `now()`]
+  DaMuaHang bit [default: false]
+}
+
+Table PhanHoiBinhLuan {
+  MaPhanHoi int [pk, increment]
+  MaDanhGia int [not null, ref: > DanhGia.MaDanhGia]
+  MaNguoiDung int [not null, ref: > NguoiDung.MaNguoiDung]
+  NoiDung nvarchar(1000) [not null]
+  NgayPhanHoi datetime [default: `now()`]
+  MaPhanHoiCha int [ref: > PhanHoiBinhLuan.MaPhanHoi, note: 'Nested reply']
+  TagNguoiDung nvarchar(100) [note: 'Tag ten nguoi duoc tra loi']
+}
+
+Table SanPhamYeuThich {
+  MaYeuThich int [pk, increment]
+  MaNguoiDung int [not null, ref: > NguoiDung.MaNguoiDung]
+  MaSanPham int [not null, ref: > SanPham.MaSanPham]
+  NgayThem datetime [default: `now()`]
+
+  indexes {
+    (MaNguoiDung, MaSanPham) [unique]
+  }
+}
+
+// Relationships (đã định nghĩa trong bảng, nhưng có thể thêm Ref riêng nếu cần)
+// Ref: DonHang.MaNguoiDung > NguoiDung.MaNguoiDung
+// Ref: ChiTietDonHang.MaDonHang > DonHang.MaDonHang
+// Ref: ChiTietDonHang.MaSanPham > SanPham.MaSanPham
+// Ref: DanhGia.MaSanPham > SanPham.MaSanPham
+// Ref: DanhGia.MaNguoiDung > NguoiDung.MaNguoiDung
+// Ref: PhanHoiBinhLuan.MaDanhGia > DanhGia.MaDanhGia
+// Ref: PhanHoiBinhLuan.MaNguoiDung > NguoiDung.MaNguoiDung
+// Ref: SanPhamYeuThich.MaNguoiDung > NguoiDung.MaNguoiDung
+// Ref: SanPhamYeuThich.MaSanPham > SanPham.MaSanPham

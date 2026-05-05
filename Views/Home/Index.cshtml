@@ -1,0 +1,502 @@
+﻿@model IEnumerable<BookStoreWeb.Models.SanPham>
+
+@{
+    ViewData["Title"] = "Trang chủ - BookStore";
+}
+
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+        <div class="container-fluid py-3">
+            <h1 class="display-5 fw-bold text-primary">Chào mừng đến với BookStore</h1>
+            <p class="col-md-8 fs-5 text-muted">Khám phá kho tàng sách đa dạng với đầy đủ các thể loại. Đặt hàng ngay hôm nay!</p>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-controller="SanPhams" asp-action="Index" class="btn btn-primary btn-lg">
+                    <i class="bi bi-box-seam"></i> Quản lý sản phẩm (Admin)
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Thanh tìm kiếm và lọc -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <form asp-action="Index" method="get" class="d-flex gap-2">
+                <div class="input-group">
+                    <input type="text" name="searchTerm" class="form-control" placeholder="Tìm kiếm sách, tác giả, NXB..." value="@ViewBag.SearchTerm">
+                    @if (!string.IsNullOrEmpty(ViewBag.TheLoai))
+                    {
+                        <input type="hidden" name="theLoai" value="@ViewBag.TheLoai" />
+                    }
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(ViewBag.SearchTerm) || !string.IsNullOrEmpty(ViewBag.TheLoai))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Xóa lọc
+                    </a>
+                }
+            </form>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <span class="text-muted">Hiển thị @Model.Count() / @ViewBag.TotalItems sản phẩm</span>
+        </div>
+    </div>
+
+    <!-- Filter thể loại -->
+    @if (ViewBag.TheLoais != null && ViewBag.TheLoais.Count > 0)
+    {
+        <div class="mb-3">
+            <span class="me-2">Lọc theo thể loại:</span>
+            <div class="btn-group" role="group">
+                <a asp-action="Index" asp-route-searchTerm="@ViewBag.SearchTerm" class="btn btn-sm @(string.IsNullOrEmpty(ViewBag.TheLoai) ? "btn-primary" : "btn-outline-primary")">Tất cả</a>
+                @foreach (var tl in ViewBag.TheLoais)
+                {
+                    <a asp-action="Index" asp-route-theLoai="@tl" asp-route-searchTerm="@ViewBag.SearchTerm" class="btn btn-sm @(ViewBag.TheLoai == tl ? "btn-primary" : "btn-outline-primary")">@tl</a>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Danh sách sách -->
+    <h2 class="mb-4">
+        <i class="bi bi-book"></i> 
+        @if (!string.IsNullOrEmpty(ViewBag.SearchTerm))
+        {
+            <span>Kết quả tìm kiếm: "@ViewBag.SearchTerm"</span>
+        }
+        else if (!string.IsNullOrEmpty(ViewBag.TheLoai))
+        {
+            <span>Thể loại: @ViewBag.TheLoai</span>
+        }
+        else
+        {
+            <span>Sách nổi bật</span>
+        }
+    </h2>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Hiện chưa có sản phẩm nào. Vui lòng quay lại sau!
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            @foreach (var item in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 hover-shadow">
+                        <!-- Hình ảnh -->
+                        <div class="position-relative">
+                            @if (!string.IsNullOrEmpty(item.HinhAnh))
+                            {
+                                <img src="~/images/@item.HinhAnh" class="card-img-top" alt="@item.TenSach" style="height: 280px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 280px;">
+                                    <i class="bi bi-book text-muted" style="font-size: 4rem;"></i>
+                                </div>
+                            }
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-2">@item.TheLoai</span>
+                            
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                <button class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 wishlist-btn" 
+                                        onclick="toggleWishlist(@item.MaSanPham, this)"
+                                        data-ma-san-pham="@item.MaSanPham">
+                                    <i class="bi bi-heart text-danger"></i>
+                                </button>
+                            }
+                            
+                            <!-- Nút so sánh -->
+                            <button class="btn btn-light btn-sm position-absolute bottom-0 end-0 m-2 compare-btn" 
+                                    onclick="toggleCompare(@item.MaSanPham, this)"
+                                    data-ma-san-pham="@item.MaSanPham"
+                                    title="Thêm vào so sánh">
+                                <i class="bi bi-arrow-left-right text-primary"></i>
+                            </button>
+                        </div>
+
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-truncate" title="@item.TenSach">@item.TenSach</h5>
+                            <p class="card-text text-muted mb-1">
+                                <small><i class="bi bi-person"></i> @item.TacGia</small>
+                            </p>
+                            <p class="card-text text-muted mb-2">
+                                <small><i class="bi bi-building"></i> @item.NhaXuatBan</small>
+                            </p>
+
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="h5 text-primary mb-0">@item.GiaBan.ToString("N0") đ</span>
+                                    <small class="text-muted">SL: @item.SoLuongTon</small>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <a asp-action="Details" asp-route-id="@item.MaSanPham" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> Chi tiết
+                                    </a>
+                                    <button onclick="addToCart(@item.MaSanPham, 1, '@item.TenSach')" class="btn btn-success btn-sm">
+                                        <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Lịch sử xem gần đây -->
+    @if (ViewBag.RecentlyViewed != null && ((List<BookStoreWeb.Models.SanPham>)ViewBag.RecentlyViewed).Any())
+    {
+        <div class="mt-5 pt-4 border-top">
+            <h4 class="mb-4"><i class="bi bi-clock-history text-info"></i> Bạn vừa xem</h4>
+            <div class="row g-4">
+                @foreach (var item in (List<BookStoreWeb.Models.SanPham>)ViewBag.RecentlyViewed)
+                {
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="position-relative">
+                                @if (!string.IsNullOrEmpty(item.HinhAnh))
+                                {
+                                    <img src="~/images/@item.HinhAnh" class="card-img-top" alt="@item.TenSach" style="height: 150px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                                        <i class="bi bi-book text-muted" style="font-size: 2rem;"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="card-body p-2">
+                                <h6 class="card-title text-truncate mb-1" title="@item.TenSach">@item.TenSach</h6>
+                                <p class="card-text text-primary fw-bold mb-0">@item.GiaBan.ToString("N0") VNĐ</p>
+                            </div>
+                            <div class="card-footer p-2 bg-transparent border-0">
+                                <a asp-action="Details" asp-route-id="@item.MaSanPham" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-eye"></i> Xem lại
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Phân trang -->
+    @if (ViewBag.TotalPages > 1)
+    {
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Nút Previous -->
+                <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage - 1)" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-theLoai="@ViewBag.TheLoai">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Các trang -->
+                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                {
+                    <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-theLoai="@ViewBag.TheLoai">@i</a>
+                    </li>
+                }
+
+                <!-- Nút Next -->
+                <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(ViewBag.CurrentPage + 1)" asp-route-searchTerm="@ViewBag.SearchTerm" asp-route-theLoai="@ViewBag.TheLoai">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function addToCart(productId, quantity, productName) {
+            fetch('/Cart/AddToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&quantity=${quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Cập nhật badge giỏ hàng
+                    updateCartBadge(data.cartCount);
+                    // Hiển thị thông báo
+                    showToast(`Đã thêm "${productName}" vào giỏ hàng!`);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function updateCartBadge(count) {
+            const badge = document.querySelector('.cart-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline' : 'none';
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+
+    <script>
+        // ==================== WISHLIST ====================
+        async function toggleWishlist(maSanPham, btnElement) {
+            const icon = btnElement.querySelector('i');
+            const isWishlisted = icon.classList.contains('bi-heart-fill');
+
+            if (isWishlisted) {
+                // Xóa khỏi yêu thích
+                // Tìm MaYeuThich từ API trước (đơn giản: reload trang)
+                showToast('Vui lòng vào trang Yêu thích để quản lý');
+            } else {
+                // Thêm vào yêu thích
+                try {
+                    const response = await fetch('/Wishlist/ThemVaoYeuThich', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `maSanPham=${maSanPham}`
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        showToast('Đã thêm vào danh sách yêu thích!');
+                        updateWishlistBadge(data.totalWishlist);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra');
+                }
+            }
+        }
+
+        function updateWishlistBadge(count) {
+            const badge = document.querySelector('.wishlist-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline' : 'none';
+            }
+        }
+
+        // Load trạng thái yêu thích khi trang load
+        document.addEventListener('DOMContentLoaded', async function() {
+            const wishlistBtns = document.querySelectorAll('.wishlist-btn');
+            for (const btn of wishlistBtns) {
+                const maSanPham = btn.dataset.maSanPham;
+                try {
+                    const response = await fetch(`/Wishlist/KiemTraYeuThich?maSanPham=${maSanPham}`);
+                    const data = await response.json();
+                    if (data.isWishlisted) {
+                        const icon = btn.querySelector('i');
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                    }
+                } catch (error) {
+                    console.error('Error checking wishlist:', error);
+                }
+            }
+
+            // Load danh sách so sánh hiện tại
+            await loadCompareWidget();
+        });
+
+        // ==================== SO SÁNH SÁCH ====================
+        let compareList = [];
+
+        async function toggleCompare(maSanPham, btnElement) {
+            const icon = btnElement.querySelector('i');
+            const isInCompare = icon.classList.contains('text-white');
+
+            if (isInCompare) {
+                // Xóa khỏi so sánh
+                try {
+                    const response = await fetch('/SoSanh/XoaKhoiSoSanh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `maSanPham=${maSanPham}`
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        icon.classList.remove('bi-check-lg', 'text-white');
+                        icon.classList.add('bi-arrow-left-right', 'text-primary');
+                        btnElement.classList.remove('btn-primary');
+                        btnElement.classList.add('btn-light');
+                        compareList = compareList.filter(id => id !== maSanPham);
+                        updateCompareWidget();
+                        showToast('Đã xóa khỏi danh sách so sánh');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            } else {
+                // Thêm vào so sánh
+                try {
+                    const response = await fetch('/SoSanh/ThemVaoSoSanh', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `maSanPham=${maSanPham}`
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        icon.classList.remove('bi-arrow-left-right', 'text-primary');
+                        icon.classList.add('bi-check-lg', 'text-white');
+                        btnElement.classList.remove('btn-light');
+                        btnElement.classList.add('btn-primary');
+                        compareList.push(maSanPham);
+                        updateCompareWidget();
+                        showToast(`Đã thêm vào so sánh (${data.count}/3)`);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        async function loadCompareWidget() {
+            try {
+                const response = await fetch('/SoSanh/GetDanhSach');
+                const data = await response.json();
+                compareList = data.map(item => item.maSanPham);
+                
+                // Update buttons
+                compareList.forEach(maSanPham => {
+                    const btn = document.querySelector(`.compare-btn[data-ma-san-pham="${maSanPham}"]`);
+                    if (btn) {
+                        const icon = btn.querySelector('i');
+                        icon.classList.remove('bi-arrow-left-right', 'text-primary');
+                        icon.classList.add('bi-check-lg', 'text-white');
+                        btn.classList.remove('btn-light');
+                        btn.classList.add('btn-primary');
+                    }
+                });
+
+                updateCompareWidget();
+            } catch (error) {
+                console.error('Error loading compare list:', error);
+            }
+        }
+
+        function updateCompareWidget() {
+            let widget = document.getElementById('compare-widget');
+            
+            if (compareList.length === 0) {
+                if (widget) widget.remove();
+                return;
+            }
+
+            if (!widget) {
+                widget = document.createElement('div');
+                widget.id = 'compare-widget';
+                widget.className = 'compare-widget';
+                document.body.appendChild(widget);
+            }
+
+            widget.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span><i class="bi bi-arrow-left-right"></i> So sánh (${compareList.length}/3)</span>
+                    <button class="btn btn-sm btn-link text-danger" onclick="clearCompare()">Xóa tất cả</button>
+                </div>
+                <a href="/SoSanh/Index" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-eye"></i> Xem so sánh
+                </a>
+            `;
+            widget.style.display = 'block';
+        }
+
+        async function clearCompare() {
+            try {
+                await fetch('/SoSanh/XoaTatCa', { method: 'POST' });
+                compareList = [];
+                document.querySelectorAll('.compare-btn').forEach(btn => {
+                    const icon = btn.querySelector('i');
+                    icon.classList.remove('bi-check-lg', 'text-white');
+                    icon.classList.add('bi-arrow-left-right', 'text-primary');
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-light');
+                });
+                updateCompareWidget();
+                showToast('Đã xóa tất cả sách so sánh');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+
+    <style>
+        .wishlist-btn {
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+        .wishlist-btn:hover {
+            transform: scale(1.1);
+        }
+        .wishlist-btn i {
+            transition: color 0.2s;
+        }
+        .wishlist-btn i.bi-heart-fill {
+            color: #dc3545 !important;
+        }
+
+        /* Compare Widget */
+        .compare-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            min-width: 200px;
+            display: none;
+        }
+
+        .compare-btn {
+            z-index: 10;
+            transition: all 0.2s;
+        }
+        .compare-btn:hover {
+            transform: scale(1.1);
+        }
+    </style>
+}

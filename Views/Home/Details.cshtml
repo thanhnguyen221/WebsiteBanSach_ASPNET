@@ -1,0 +1,872 @@
+@model BookStoreWeb.Models.SanPham
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = Model.TenSach;
+}
+
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Trang chủ</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.TenSach</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Hình ảnh sách -->
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                @if (!string.IsNullOrEmpty(Model.HinhAnh))
+                {
+                    <img src="~/images/@Model.HinhAnh" class="card-img-top" alt="@Model.TenSach" style="max-height: 500px; object-fit: contain;">
+                }
+                else
+                {
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <i class="bi bi-book text-muted" style="font-size: 8rem;"></i>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Thông tin sách -->
+        <div class="col-md-7">
+            <h1 class="display-5 fw-bold mb-3">@Model.TenSach</h1>
+
+            <div class="mb-3">
+                <span class="badge bg-primary fs-6">@Model.TheLoai</span>
+                @if (Model.NamXuatBan.HasValue)
+                {
+                    <span class="badge bg-secondary fs-6">@Model.NamXuatBan</span>
+                }
+            </div>
+
+            <h3 class="text-primary mb-4">@Model.GiaBan.ToString("N0") đ</h3>
+
+            <dl class="row">
+                <dt class="col-sm-3"><i class="bi bi-person"></i> Tác giả:</dt>
+                <dd class="col-sm-9">@Model.TacGia</dd>
+
+                <dt class="col-sm-3"><i class="bi bi-building"></i> NXB:</dt>
+                <dd class="col-sm-9">@Model.NhaXuatBan</dd>
+
+                <dt class="col-sm-3"><i class="bi bi-box"></i> Số lượng tồn:</dt>
+                <dd class="col-sm-9">@Model.SoLuongTon</dd>
+            </dl>
+
+            <hr />
+
+            <h5><i class="bi bi-file-text"></i> Mô tả</h5>
+            <p class="text-muted">@(string.IsNullOrEmpty(Model.MoTa) ? "Không có mô tả" : Model.MoTa)</p>
+
+            <hr />
+
+            <!-- Thêm vào giỏ hàng -->
+            <div class="d-flex gap-3 align-items-center">
+                <div class="input-group" style="width: 150px;">
+                    <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(-1)">
+                        <i class="bi bi-dash"></i>
+                    </button>
+                    <input type="number" id="quantityInput" class="form-control text-center" value="1" min="1" max="@Model.SoLuongTon">
+                    <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity(1)">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                <button onclick="addToCartDetails()" class="btn btn-success btn-lg">
+                    <i class="bi bi-cart-plus"></i> Thêm vào giỏ hàng
+                </button>
+
+                <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-arrow-left"></i> Tiếp tục mua
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTION: Đánh giá và Bình luận -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom">
+                    <h4 class="mb-0"><i class="bi bi-star-fill text-warning"></i> Đánh giá & Bình luận</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Tổng quan đánh giá -->
+                    <div class="row mb-4" id="ratingSummary">
+                        <div class="col-md-4 text-center border-end">
+                            <h1 class="display-4 fw-bold text-warning mb-2" id="averageRating">0.0</h1>
+                            <div class="mb-2" id="averageStars">
+                                <i class="bi bi-star text-warning fs-4"></i>
+                                <i class="bi bi-star text-warning fs-4"></i>
+                                <i class="bi bi-star text-warning fs-4"></i>
+                                <i class="bi bi-star text-warning fs-4"></i>
+                                <i class="bi bi-star text-warning fs-4"></i>
+                            </div>
+                            <p class="text-muted" id="totalReviews">0 đánh giá</p>
+                        </div>
+                        <div class="col-md-8 ps-md-4">
+                            <div class="rating-bars" id="ratingBars">
+                                <!-- Progress bars sẽ được tạo bằng JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <!-- Form đánh giá -->
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <div class="mb-4 p-3 bg-light rounded" id="reviewForm">
+                            <h5 class="mb-3">Viết đánh giá của bạn</h5>
+                            <form id="danhGiaForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" id="maSanPham" value="@Model.MaSanPham" />
+                                
+                                <!-- Star Rating -->
+                                <div class="mb-3">
+                                    <label class="form-label">Chọn số sao:</label>
+                                    <div class="star-rating-input">
+                                        <i class="bi bi-star fs-3" data-rating="1"></i>
+                                        <i class="bi bi-star fs-3" data-rating="2"></i>
+                                        <i class="bi bi-star fs-3" data-rating="3"></i>
+                                        <i class="bi bi-star fs-3" data-rating="4"></i>
+                                        <i class="bi bi-star fs-3" data-rating="5"></i>
+                                    </div>
+                                    <input type="hidden" id="soSao" value="0" />
+                                    <div id="ratingText" class="form-text text-muted mt-1">Chọn để đánh giá</div>
+                                </div>
+
+                                <!-- Nội dung -->
+                                <div class="mb-3">
+                                    <label for="noiDung" class="form-label">Bình luận (tùy chọn):</label>
+                                    <textarea class="form-control" id="noiDung" rows="3" maxlength="1000" placeholder="Chia sẻ cảm nhận của bạn về sách..."></textarea>
+                                    <div class="form-text text-end"><span id="charCount">0</span>/1000</div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary" id="submitReview">
+                                    <i class="bi bi-send"></i> Gửi đánh giá
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            <a asp-controller="TaiKhoan" asp-action="Login" class="alert-link">Đăng nhập</a> để viết đánh giá.
+                        </div>
+                    }
+
+                    <!-- Danh sách đánh giá -->
+                    <div id="danhGiaList">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Đang tải đánh giá...</p>
+                        </div>
+                    </div>
+
+                    <!-- Phân trang -->
+                    <nav aria-label="Phân trang đánh giá" class="mt-3">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Pagination sẽ được tạo bằng JS -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateQuantity(change) {
+            const input = document.getElementById('quantityInput');
+            let value = parseInt(input.value) + change;
+            const max = parseInt(input.getAttribute('max'));
+
+            if (value < 1) value = 1;
+            if (value > max) value = max;
+
+            input.value = value;
+        }
+
+        function addToCartDetails() {
+            const productId = @Model.MaSanPham;
+            const quantity = parseInt(document.getElementById('quantityInput').value);
+            const productName = '@Model.TenSach';
+
+            fetch('/Cart/AddToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `productId=${productId}&quantity=${quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Cập nhật badge giỏ hàng
+                    const badge = document.querySelector('.cart-badge');
+                    if (badge) {
+                        badge.textContent = data.cartCount;
+                        badge.style.display = data.cartCount > 0 ? 'inline' : 'none';
+                    }
+                    // Hiển thị thông báo
+                    showToast(`Đã thêm ${quantity} cuốn "${productName}" vào giỏ hàng!`);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ==================== ĐÁNH GIÁ SAO VÀ BÌNH LUẬN ====================
+        
+        let currentPage = 1;
+        const pageSize = 5;
+        const maSanPham = @Model.MaSanPham;
+        let selectedRating = 0;
+
+        // Star Rating
+        document.addEventListener('DOMContentLoaded', function() {
+            const stars = document.querySelectorAll('.star-rating-input i');
+            const ratingInput = document.getElementById('soSao');
+            const ratingText = document.getElementById('ratingText');
+            const ratingLabels = ['Rất tệ', 'Tệ', 'Bình thường', 'Tốt', 'Rất tốt'];
+
+            stars.forEach(star => {
+                // Hover
+                star.addEventListener('mouseenter', function() {
+                    const rating = parseInt(this.dataset.rating);
+                    highlightStars(rating);
+                    ratingText.textContent = ratingLabels[rating - 1];
+                });
+
+                // Click
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.dataset.rating);
+                    selectedRating = rating;
+                    ratingInput.value = rating;
+                    highlightStars(rating);
+                    ratingText.textContent = ratingLabels[rating - 1];
+                    ratingText.classList.add('text-primary');
+                });
+            });
+
+            // Mouse leave container
+            document.querySelector('.star-rating-input').addEventListener('mouseleave', function() {
+                highlightStars(selectedRating);
+                if (selectedRating > 0) {
+                    ratingText.textContent = ratingLabels[selectedRating - 1];
+                } else {
+                    ratingText.textContent = 'Chọn để đánh giá';
+                    ratingText.classList.remove('text-primary');
+                }
+            });
+
+            // Character counter
+            const noiDung = document.getElementById('noiDung');
+            const charCount = document.getElementById('charCount');
+            if (noiDung) {
+                noiDung.addEventListener('input', function() {
+                    charCount.textContent = this.value.length;
+                });
+            }
+
+            // Form submit
+            const danhGiaForm = document.getElementById('danhGiaForm');
+            if (danhGiaForm) {
+                danhGiaForm.addEventListener('submit', submitDanhGia);
+            }
+
+            // Load initial data
+            loadDanhGias(1);
+            loadRatingSummary();
+        });
+
+        function highlightStars(rating) {
+            const stars = document.querySelectorAll('.star-rating-input i');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.remove('bi-star');
+                    star.classList.add('bi-star-fill', 'text-warning');
+                } else {
+                    star.classList.remove('bi-star-fill', 'text-warning');
+                    star.classList.add('bi-star');
+                }
+            });
+        }
+
+        // Load danh sách đánh giá
+        async function loadDanhGias(page) {
+            currentPage = page;
+            try {
+                const response = await fetch(`/DanhGia/GetDanhGiaBySanPham/${maSanPham}?page=${page}&pageSize=${pageSize}`);
+                const data = await response.json();
+
+                renderDanhGias(data.danhGias);
+                renderPagination(data.totalPages, data.currentPage);
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                document.getElementById('danhGiaList').innerHTML = 
+                    '<div class="alert alert-danger">Không thể tải đánh giá. Vui lòng thử lại sau.</div>';
+            }
+        }
+
+        // Load rating summary
+        async function loadRatingSummary() {
+            try {
+                const [avgResponse, countResponse] = await Promise.all([
+                    fetch(`/DanhGia/GetDiemTrungBinh/${maSanPham}`),
+                    fetch(`/DanhGia/GetDanhGiaBySanPham/${maSanPham}?page=1&pageSize=1`)
+                ]);
+
+                const avgRating = await avgResponse.json();
+                const countData = await countResponse.json();
+
+                document.getElementById('averageRating').textContent = avgRating.toFixed(1);
+                document.getElementById('totalReviews').textContent = `${countData.totalCount} đánh giá`;
+
+                // Render stars
+                const avgStars = document.getElementById('averageStars');
+                avgStars.innerHTML = renderStars(Math.round(avgRating));
+
+                // Render rating bars
+                renderRatingBars(countData.danhGias || []);
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        function renderStars(rating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                if (i <= rating) {
+                    html += '<i class="bi bi-star-fill text-warning fs-4"></i>';
+                } else {
+                    html += '<i class="bi bi-star text-warning fs-4"></i>';
+                }
+            }
+            return html;
+        }
+
+        function renderRatingBars(danhGias) {
+            const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+            danhGias.forEach(d => counts[d.soSao]++);
+            const total = danhGias.length;
+
+            let html = '';
+            for (let i = 5; i >= 1; i--) {
+                const count = counts[i] || 0;
+                const percent = total > 0 ? (count / total * 100) : 0;
+                html += `
+                    <div class="d-flex align-items-center mb-1">
+                        <span class="me-2" style="width: 60px;">${i} sao</span>
+                        <div class="flex-grow-1">
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-warning" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                        <span class="ms-2 text-muted" style="width: 40px;">${count}</span>
+                    </div>
+                `;
+            }
+            document.getElementById('ratingBars').innerHTML = html;
+        }
+
+        function renderDanhGias(danhGias) {
+            const container = document.getElementById('danhGiaList');
+            if (!danhGias || danhGias.length === 0) {
+                container.innerHTML = '<div class="alert alert-light text-center">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!</div>';
+                return;
+            }
+
+            const currentUserId = '@User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)';
+            
+            let html = '';
+            danhGias.forEach(dg => {
+                const stars = renderStars(dg.soSao);
+                const daMuaBadge = dg.daMuaHang ? '<span class="badge bg-success ms-2">Đã mua hàng</span>' : '';
+                const isCurrentUser = currentUserId && parseInt(currentUserId) === dg.maNguoiDung;
+                const userNameClass = isCurrentUser ? 'text-primary' : 'text-dark';
+                const userNameLabel = isCurrentUser ? ' (Bạn)' : '';
+                const userName = dg.nguoiDung ? dg.nguoiDung.hoTen : 'Người dùng';
+                
+                html += `
+                    <div class="card mb-3 border-0 bg-light ${isCurrentUser ? 'border-primary border-2' : ''}" id="danhGia-${dg.maDanhGia}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <strong class="${userNameClass}">${escapeHtml(userName)}${userNameLabel}</strong>
+                                        ${daMuaBadge}
+                                    </h6>
+                                    <div class="text-warning mb-1">${stars}</div>
+                                    <small class="text-muted">${dg.ngayDanhGia}</small>
+                                </div>
+                                ${renderDanhGiaActions(dg)}
+                            </div>
+                            <p class="mb-2">${escapeHtml(dg.noiDung || '')}</p>
+                            
+                            <!-- Phản hồi -->
+                            <div class="phan-hoi-list ms-4 mt-3" id="phanHoi-${dg.maDanhGia}">
+                                ${renderPhanHois(dg.phanHois, currentUserId, '@User.IsInRole("Admin")' === 'True')}
+                            </div>
+                            
+                            <!-- Form trả lời -->
+                            <div class="mt-2 ms-4">
+                                <button class="btn btn-sm btn-outline-primary" onclick="showReplyForm(${dg.maDanhGia})">
+                                    <i class="bi bi-reply"></i> Trả lời
+                                </button>
+                                <div id="replyForm-${dg.maDanhGia}" class="d-none mt-2">
+                                    <textarea class="form-control mb-2" rows="2" placeholder="Viết phản hồi của bạn..." maxlength="500"></textarea>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-sm btn-primary" onclick="submitPhanHoi(${dg.maDanhGia})">Gửi</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="hideReplyForm(${dg.maDanhGia})">Hủy</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function renderDanhGiaActions(dg) {
+            const userId = '@User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier)';
+            const isOwner = userId && parseInt(userId) === dg.maNguoiDung;
+            const isAdmin = '@User.IsInRole("Admin")' === 'True';
+            
+            if (!isOwner && !isAdmin) return '';
+            
+            return `
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-link text-muted" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        ${isOwner ? `<li><a class="dropdown-item" href="#" onclick="editDanhGia(${dg.maDanhGia}, ${dg.soSao}, '${escapeHtml(dg.noiDung || '')}')">Sửa</a></li>` : ''}
+                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteDanhGia(${dg.maDanhGia})">Xóa</a></li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function renderPhanHois(phanHois, currentUserId, isAdmin) {
+            if (!phanHois || phanHois.length === 0) return '';
+            
+            let html = '<div class="phan-hoi-container" style="position: relative;">';
+            
+            // Thêm đường nối dọc
+            html += '<div style="position: absolute; left: 16px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, #dee2e6, #adb5bd);"></div>';
+            
+            phanHois.forEach((ph, index) => {
+                const isCurrentUser = currentUserId && parseInt(currentUserId) === ph.maNguoiDung;
+                const userNameClass = isCurrentUser ? 'text-primary' : 'text-dark';
+                const userNameLabel = isCurrentUser ? ' (Bạn)' : '';
+                const userName = ph.nguoiDung ? ph.nguoiDung.hoTen : 'Người dùng';
+                const tagLabel = ph.tagNguoiDung ? '<span class="badge bg-info ms-1">@@' + ph.tagNguoiDung + '</span>' : '';
+                const isLast = index === phanHois.length - 1;
+                
+                // Nút sửa/xóa cho phản hồi
+                let actionButtons = '';
+                if (isCurrentUser || isAdmin) {
+                    actionButtons = `
+                        <div class="dropdown ms-2">
+                            <button class="btn btn-link btn-sm text-muted p-0" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                ${isCurrentUser ? `<li><a class="dropdown-item" href="#" onclick="editPhanHoi(${ph.maPhanHoi}, '${escapeHtml(ph.noiDung || '')}')"><i class="bi bi-pencil me-2"></i>Sửa</a></li>` : ''}
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deletePhanHoi(${ph.maPhanHoi})"><i class="bi bi-trash me-2"></i>Xóa</a></li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <div class="d-flex gap-2 mb-3 phan-hoi-item" style="position: relative; ${isLast ? '' : 'padding-bottom: 8px;'}" id="phanHoi-${ph.maPhanHoi}">
+                        <!-- Điểm nối ngang -->
+                        <div style="position: absolute; left: 0; top: 16px; width: 24px; height: 2px; background: #adb5bd;"></div>
+                        
+                        <div class="flex-shrink-0 ms-4">
+                            <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                <i class="bi bi-person text-secondary"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 bg-white rounded-3 p-2 border" style="box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="fw-bold ${userNameClass} small">${escapeHtml(userName)}${userNameLabel}</span>
+                                    ${tagLabel}
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <small class="text-muted" style="font-size: 0.75rem;">${ph.ngayPhanHoi}</small>
+                                    ${actionButtons}
+                                </div>
+                            </div>
+                            <p class="mb-0 mt-1 small" id="phanHoi-content-${ph.maPhanHoi}">${escapeHtml(ph.noiDung || '')}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        function renderPagination(totalPages, currentPage) {
+            if (totalPages <= 1) {
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            // Previous
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadDanhGias(${currentPage - 1})">Trước</a>
+            </li>`;
+
+            // Pages
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadDanhGias(${i})">${i}</a>
+                </li>`;
+            }
+
+            // Next
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" onclick="loadDanhGias(${currentPage + 1})">Sau</a>
+            </li>`;
+
+            document.getElementById('pagination').innerHTML = html;
+        }
+
+        // Submit đánh giá
+        async function submitDanhGia(e) {
+            e.preventDefault();
+            
+            if (selectedRating === 0) {
+                alert('Vui lòng chọn số sao đánh giá');
+                return;
+            }
+
+            const noiDung = document.getElementById('noiDung').value;
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            try {
+                const response = await fetch('/DanhGia/DanhGiaSanPham', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        maSanPham: maSanPham,
+                        soSao: selectedRating,
+                        noiDung: noiDung
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Đánh giá thành công!');
+                    // Reset form
+                    document.getElementById('danhGiaForm').reset();
+                    selectedRating = 0;
+                    highlightStars(0);
+                    document.getElementById('charCount').textContent = '0';
+                    // Reload
+                    loadDanhGias(1);
+                    loadRatingSummary();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi gửi đánh giá');
+            }
+        }
+
+        // Các hàm xử lý phản hồi
+        function showReplyForm(maDanhGia) {
+            document.getElementById(`replyForm-${maDanhGia}`).classList.remove('d-none');
+        }
+
+        function hideReplyForm(maDanhGia) {
+            document.getElementById(`replyForm-${maDanhGia}`).classList.add('d-none');
+        }
+
+        async function editPhanHoi(maPhanHoi, noiDungCu) {
+            const noiDungMoi = prompt('Sửa phản hồi:', noiDungCu);
+            if (!noiDungMoi || noiDungMoi.trim() === '') return;
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            try {
+                const response = await fetch(`/DanhGia/SuaPhanHoi/${maPhanHoi}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({ noiDung: noiDungMoi.trim() })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Phản hồi đã được cập nhật!');
+                    loadDanhGias(currentPage);
+                } else {
+                    alert(result.message || 'Không thể sửa phản hồi');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi sửa phản hồi');
+            }
+        }
+
+        async function deletePhanHoi(maPhanHoi) {
+            if (!confirm('Bạn có chắc muốn xóa phản hồi này?')) return;
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            try {
+                const response = await fetch(`/DanhGia/XoaPhanHoi/${maPhanHoi}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    }
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Phản hồi đã được xóa!');
+                    loadDanhGias(currentPage);
+                } else {
+                    alert(result.message || 'Không thể xóa phản hồi');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi xóa phản hồi');
+            }
+        }
+
+        async function submitPhanHoi(maDanhGia) {
+            const textarea = document.querySelector(`#replyForm-${maDanhGia} textarea`);
+            const noiDung = textarea.value.trim();
+            
+            if (!noiDung) {
+                alert('Vui lòng nhập nội dung phản hồi');
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            try {
+                const response = await fetch('/DanhGia/TraLoiBinhLuan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        maDanhGia: maDanhGia,
+                        noiDung: noiDung,
+                        maPhanHoiCha: null
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Trả lời thành công!');
+                    textarea.value = '';
+                    hideReplyForm(maDanhGia);
+                    // Reload đánh giá để hiển thị phản hồi mới
+                    loadDanhGias(currentPage);
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra khi gửi phản hồi');
+            }
+        }
+
+        async function deleteDanhGia(maDanhGia) {
+            if (!confirm('Bạn có chắc muốn xóa đánh giá này?')) return;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            try {
+                const response = await fetch(`/DanhGia/XoaDanhGia/${maDanhGia}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Xóa đánh giá thành công!');
+                    loadDanhGias(currentPage);
+                    loadRatingSummary();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            }
+        }
+
+        function editDanhGia(maDanhGia, soSao, noiDung) {
+            // Chuyển sang chế độ edit
+            selectedRating = soSao;
+            highlightStars(soSao);
+            document.getElementById('soSao').value = soSao;
+            document.getElementById('noiDung').value = noiDung;
+            document.getElementById('charCount').textContent = noiDung.length;
+            
+            // Scroll đến form
+            document.getElementById('reviewForm').scrollIntoView({ behavior: 'smooth' });
+            
+            // Đổi nút submit thành cập nhật
+            const submitBtn = document.getElementById('submitReview');
+            submitBtn.innerHTML = '<i class="bi bi-check"></i> Cập nhật';
+            submitBtn.onclick = function(e) {
+                e.preventDefault();
+                updateDanhGia(maDanhGia);
+            };
+        }
+
+        async function updateDanhGia(maDanhGia) {
+            const noiDung = document.getElementById('noiDung').value;
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            try {
+                const response = await fetch(`/DanhGia/CapNhatDanhGia/${maDanhGia}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        soSao: selectedRating,
+                        noiDung: noiDung
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Cập nhật đánh giá thành công!');
+                    // Reset form về chế độ thêm mới
+                    document.getElementById('danhGiaForm').reset();
+                    selectedRating = 0;
+                    highlightStars(0);
+                    document.getElementById('charCount').textContent = '0';
+                    
+                    // Khôi phục nút submit
+                    const submitBtn = document.getElementById('submitReview');
+                    submitBtn.innerHTML = '<i class="bi bi-send"></i> Gửi đánh giá';
+                    submitBtn.onclick = submitDanhGia;
+                    
+                    loadDanhGias(currentPage);
+                    loadRatingSummary();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    <style>
+        /* Star Rating Styles */
+        .star-rating-input {
+            cursor: pointer;
+            display: inline-flex;
+            gap: 5px;
+        }
+        
+        .star-rating-input i {
+            transition: transform 0.2s, color 0.2s;
+        }
+        
+        .star-rating-input i:hover {
+            transform: scale(1.2);
+        }
+
+        /* Rating Bars */
+        .rating-bars .progress {
+            background-color: #e9ecef;
+            border-radius: 10px;
+        }
+        
+        .rating-bars .progress-bar {
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        /* Review Cards */
+        #danhGiaList .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #danhGiaList .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+
+        /* Nested Replies */
+        .phan-hoi-list {
+            border-left: 3px solid #dee2e6;
+            padding-left: 15px;
+        }
+
+        /* Tag User */
+        .tag-user {
+            color: #0d6efd;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .tag-user:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .star-rating-input i {
+                font-size: 1.5rem !important;
+            }
+            
+            .rating-bars .d-flex {
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+}

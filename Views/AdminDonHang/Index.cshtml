@@ -1,0 +1,137 @@
+@model IEnumerable<BookStoreWeb.Models.DonHang>
+@{
+    ViewData["Title"] = "Quản lý Đơn hàng";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-clipboard-check"></i> Quản lý Đơn hàng</h1>
+        <a asp-controller="SanPhams" asp-action="Index" class="btn btn-outline-primary">
+            <i class="bi bi-box-seam"></i> Quản lý Sản phẩm
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Danh sách đơn hàng (@Model.Count() đơn)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã ĐH</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Phương thức</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="fw-bold text-primary">#@item.MaDonHang</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">@item.NguoiDung?.HoTen</div>
+                                    <small class="text-muted">@item.NguoiDung?.Email</small>
+                                </td>
+                                <td>
+                                    @item.NgayDatHang.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-danger">@item.TongTien.ToString("N0") đ</span>
+                                </td>
+                                <td>
+                                    @if (item.PhuongThucThanhToan == "Tiền mặt")
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-cash-coin"></i> Tiền mặt</span>
+                                    }
+                                    else if (item.PhuongThucThanhToan == "MoMo")
+                                    {
+                                        <span class="badge bg-primary"><i class="bi bi-wallet2"></i> MoMo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.PhuongThucThanhToan</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (item.TrangThai)
+                                    {
+                                        case "ChoXacNhan":
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Chờ xác nhận</span>
+                                            break;
+                                        case "DaXacNhan":
+                                            <span class="badge bg-info"><i class="bi bi-check-circle"></i> Đã xác nhận</span>
+                                            break;
+                                        case "DangGiao":
+                                            <span class="badge bg-primary"><i class="bi bi-truck"></i> Đang giao</span>
+                                            break;
+                                        case "HoanThanh":
+                                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Hoàn thành</span>
+                                            break;
+                                        case "Huy":
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Đã hủy</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-secondary">@item.TrangThai</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="ChiTiet" asp-route-id="@item.MaDonHang" class="btn btn-sm btn-outline-info" title="Xem chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        
+                                        @if (item.TrangThai == "ChoXacNhan")
+                                        {
+                                            <form asp-action="XacNhan" asp-route-id="@item.MaDonHang" method="post" class="d-inline" onsubmit="return confirm('Xác nhận đơn hàng này?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Xác nhận">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                            <form asp-action="HuyDon" asp-route-id="@item.MaDonHang" method="post" class="d-inline" onsubmit="return confirm('Hủy đơn hàng này?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Hủy đơn">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        @if (item.TrangThai == "Huy")
+                                        {
+                                            <form asp-action="XoaDon" asp-route-id="@item.MaDonHang" method="post" class="d-inline" onsubmit="return confirm('XÓA VĨNH VIỄN đơn hàng này? Hành động này không thể hoàn tác!');">
+                                                <button type="submit" class="btn btn-sm btn-outline-dark" title="Xóa đơn">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

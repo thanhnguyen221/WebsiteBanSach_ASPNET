@@ -1,0 +1,159 @@
+@model IEnumerable<BookStoreWeb.Models.SanPhamYeuThich>
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Sách yêu thích của tôi";
+}
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-heart-fill text-danger"></i> Sách yêu thích của tôi</h2>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left"></i> Tiếp tục mua sắm
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-heart text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3 text-muted">Chưa có sách yêu thích nào</h4>
+            <p class="text-muted">Hãy khám phá và thêm những cuốn sách bạn yêu thích!</p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-2">
+                <i class="bi bi-shop"></i> Khám phá sách ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-6 col-lg-4 col-xl-3" id="wishlist-item-@item.MaYeuThich">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="position-relative">
+                            @if (item.SanPham != null && !string.IsNullOrEmpty(item.SanPham.HinhAnh))
+                            {
+                                <img src="~/images/@item.SanPham.HinhAnh" class="card-img-top" alt="@item.SanPham.TenSach" 
+                                     style="height: 250px; object-fit: cover;" 
+                                     onerror="this.src='/images/no-image.png'; this.onerror=null;" />
+                            }
+                            else
+                            {
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
+                                    <i class="bi bi-book text-muted" style="font-size: 4rem;"></i>
+                                </div>
+                            }
+                            
+                            <!-- Nút xóa -->
+                            <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2" 
+                                    onclick="xoaKhoiYeuThich(@item.MaYeuThich)"
+                                    title="Xóa khỏi yêu thích">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-truncate" title="@item.SanPham?.TenSach">@item.SanPham?.TenSach</h5>
+                            <p class="card-text text-muted mb-2">@item.SanPham?.TacGia</p>
+                            
+                            <div class="mt-auto">
+                                <h5 class="text-primary mb-3">@item.SanPham?.GiaBan.ToString("N0") VNĐ</h5>
+                                <div class="d-grid gap-2">
+                                    <a asp-controller="Home" asp-action="Details" asp-route-id="@item.SanPham?.MaSanPham" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> Xem chi tiết
+                                    </a>
+                                    <button class="btn btn-success btn-sm" onclick="themVaoGio(@item.SanPham?.MaSanPham)">
+                                        <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer text-muted text-center">
+                            <small><i class="bi bi-clock"></i> Đã thêm @item.NgayThem.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function xoaKhoiYeuThich(maYeuThich) {
+            if (!confirm('Bạn có chắc muốn xóa sách này khỏi danh sách yêu thích?')) {
+                return;
+            }
+
+            fetch(`/Wishlist/XoaKhoiYeuThich/${maYeuThich}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Xóa item khỏi DOM
+                    document.getElementById(`wishlist-item-${maYeuThich}`).remove();
+                    
+                    // Kiểm tra nếu không còn item nào
+                    if (document.querySelectorAll('[id^="wishlist-item-"]').length === 0) {
+                        location.reload(); // Reload để hiển thị trạng thái trống
+                    }
+                    
+                    showToast('Đã xóa khỏi danh sách yêu thích');
+                    updateWishlistCount(data.totalWishlist);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+        }
+
+        function themVaoGio(maSanPham) {
+            fetch(`/Cart/ThemVaoGio?maSanPham=${maSanPham}&soLuong=1`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Đã thêm vào giỏ hàng');
+                    updateCartCount(data.cartCount);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+        }
+
+        function updateWishlistCount(count) {
+            const badges = document.querySelectorAll('.wishlist-count');
+            badges.forEach(badge => {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline' : 'none';
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+}

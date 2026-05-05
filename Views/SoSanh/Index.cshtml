@@ -1,0 +1,317 @@
+@model List<BookStoreWeb.Models.SanPham>
+
+@{
+    ViewData["Title"] = "So sánh sách";
+}
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-arrow-left-right text-primary"></i> So sánh sách</h2>
+        <div>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Quay lại cửa hàng
+            </a>
+            @if (Model.Any())
+            {
+                <button class="btn btn-outline-danger ms-2" onclick="xoaTatCaSoSanh()">
+                    <i class="bi bi-trash"></i> Xóa tất cả
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-arrow-left-right text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3 text-muted">Chưa có sách để so sánh</h4>
+            <p class="text-muted">Hãy chọn từ 2 đến 3 cuốn sách để so sánh!</p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-2">
+                <i class="bi bi-shop"></i> Chọn sách ngay
+            </a>
+        </div>
+    }
+    else if (Model.Count == 1)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> 
+            Bạn cần thêm ít nhất 1 cuốn sách nữa để so sánh. 
+            <a asp-controller="Home" asp-action="Index" class="alert-link">Tìm thêm sách</a>
+        </div>
+        
+        <div class="row g-4">
+            @foreach (var sach in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="position-relative">
+                            @if (!string.IsNullOrEmpty(sach.HinhAnh))
+                            {
+                                <img src="~/images/@sach.HinhAnh" class="card-img-top" alt="@sach.TenSach" style="height: 250px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 250px;">
+                                    <i class="bi bi-book text-muted" style="font-size: 4rem;"></i>
+                                </div>
+                            }
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-2">@sach.TheLoai</span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title text-truncate">@sach.TenSach</h5>
+                            <p class="card-text text-muted mb-1">@sach.TacGia</p>
+                            <p class="card-text text-danger fw-bold fs-5">@sach.GiaBan.ToString("N0") VNĐ</p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <div class="d-grid gap-2">
+                                <a asp-controller="Home" asp-action="Details" asp-route-id="@sach.MaSanPham" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm" onclick="xoaKhoiSoSanh(@sach.MaSanPham)">
+                                    <i class="bi bi-trash"></i> Xóa khỏi so sánh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Bảng so sánh -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 20%;">Tiêu chí</th>
+                                @foreach (var sach in Model)
+                                {
+                                    <th style="width: @((100-20)/Model.Count)%">
+                                        <div class="position-relative">
+                                            <button class="btn btn-sm btn-outline-danger position-absolute top-0 end-0" 
+                                                    onclick="xoaKhoiSoSanh(@sach.MaSanPham)"
+                                                    style="z-index: 10;">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                            @if (!string.IsNullOrEmpty(sach.HinhAnh))
+                                            {
+                                                <img src="~/images/@sach.HinhAnh" alt="@sach.TenSach" class="img-fluid mb-2" style="max-height: 150px; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                <div class="bg-light d-flex align-items-center justify-content-center mb-2" style="height: 150px;">
+                                                    <i class="bi bi-book text-muted" style="font-size: 3rem;"></i>
+                                                </div>
+                                            }
+                                            <div class="fw-bold text-primary">@sach.TenSach</div>
+                                        </div>
+                                    </th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-tag"></i> Giá bán</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">
+                                        <span class="text-danger fw-bold fs-5">@sach.GiaBan.ToString("N0") VNĐ</span>
+                                    </td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-person"></i> Tác giả</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">@sach.TacGia</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-building"></i> Nhà xuất bản</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">@sach.NhaXuatBan</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-calendar"></i> Năm xuất bản</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">@sach.NamXuatBan</td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-bookmark"></i> Thể loại</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">@sach.TheLoai</span>
+                                    </td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-box-seam"></i> Tồn kho</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">
+                                        @if (sach.SoLuongTon > 0)
+                                        {
+                                            <span class="badge bg-success">Còn @sach.SoLuongTon cuốn</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Hết hàng</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"><i class="bi bi-star"></i> Đánh giá</td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">
+                                        <div class="danh-gia-placeholder" data-ma-san-pham="@sach.MaSanPham">
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="fw-bold bg-light"></td>
+                                @foreach (var sach in Model)
+                                {
+                                    <td class="text-center">
+                                        <div class="d-grid gap-2">
+                                            <a asp-controller="Home" asp-action="Details" asp-route-id="@sach.MaSanPham" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye"></i> Xem chi tiết
+                                            </a>
+                                            <button class="btn btn-success btn-sm" onclick="themVaoGio(@sach.MaSanPham)">
+                                                <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                            </button>
+                                        </div>
+                                    </td>
+                                }
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Load đánh giá trung bình cho mỗi sách
+        document.addEventListener('DOMContentLoaded', async function() {
+            const placeholders = document.querySelectorAll('.danh-gia-placeholder');
+            
+            for (const placeholder of placeholders) {
+                const maSanPham = placeholder.dataset.maSanPham;
+                try {
+                    const response = await fetch(`/DanhGia/GetDiemTrungBinh/${maSanPham}`);
+                    const rating = await response.json();
+                    
+                    if (rating > 0) {
+                        let stars = '';
+                        for (let i = 1; i <= 5; i++) {
+                            if (i <= Math.round(rating)) {
+                                stars += '<i class="bi bi-star-fill text-warning"></i>';
+                            } else {
+                                stars += '<i class="bi bi-star text-muted"></i>';
+                            }
+                        }
+                        placeholder.innerHTML = `${stars} <span class="ms-1">(${rating.toFixed(1)})</span>`;
+                    } else {
+                        placeholder.innerHTML = '<span class="text-muted">Chưa có đánh giá</span>';
+                    }
+                } catch (error) {
+                    console.error('Error loading rating:', error);
+                    placeholder.innerHTML = '<span class="text-muted">-</span>';
+                }
+            }
+        });
+
+        function xoaKhoiSoSanh(maSanPham) {
+            if (!confirm('Bạn có chắc muốn xóa sách này khỏi danh sách so sánh?')) {
+                return;
+            }
+
+            fetch('/SoSanh/XoaKhoiSoSanh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `maSanPham=${maSanPham}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Đã xóa khỏi danh sách so sánh');
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+        }
+
+        function xoaTatCaSoSanh() {
+            if (!confirm('Bạn có chắc muốn xóa tất cả sách khỏi danh sách so sánh?')) {
+                return;
+            }
+
+            fetch('/SoSanh/XoaTatCa', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Đã xóa tất cả');
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+        }
+
+        function themVaoGio(maSanPham) {
+            fetch(`/Cart/ThemVaoGio?maSanPham=${maSanPham}&soLuong=1`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Đã thêm vào giỏ hàng');
+                    updateCartCount(data.cartCount);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra');
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success position-fixed top-0 end-0 m-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `<i class="bi bi-check-circle"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+}
