@@ -14,7 +14,7 @@ Experience the complete e-commerce flow and admin features:
 
 https://github.com/user-attachments/assets/51a6f8fb-a03e-48e1-b16b-e87b60debc66
 
-> [!TIP]
+> note : This video does not include a comparison of the books, but it is part of the project.
 
 
 ---
